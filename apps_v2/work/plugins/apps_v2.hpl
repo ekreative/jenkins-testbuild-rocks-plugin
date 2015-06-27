@@ -1,0 +1,13 @@
+Manifest-Version: 1.0
+Group-Id: com.ekreative.apps_v2
+Short-Name: apps_v2
+Long-Name: TODO Plugin
+Url: https://wiki.jenkins-ci.org/display/JENKINS/TODO+Plugin
+Plugin-Version: 1.0-SNAPSHOT (private-06/27/2015 13:10-Fenix-mobile)
+Hudson-Version: 1.617
+Jenkins-Version: 1.617
+Plugin-Developers: 
+Support-Dynamic-Loading: true
+Libraries: C:\eclipseWorkspace\apps_v2\apps_v2\target\classes
+Resource-Path: C:\eclipseWorkspace\apps_v2\apps_v2\src\main\webapp
+
