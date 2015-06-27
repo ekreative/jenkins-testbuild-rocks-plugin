@@ -39,6 +39,8 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Arrays;
+import java.util.Comparator;
 
 public class AppsV2Builder extends Builder {
 
@@ -60,7 +62,8 @@ public class AppsV2Builder extends Builder {
 	}
 
 	@Override
-	public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) {
+	public boolean perform(AbstractBuild build, Launcher launcher,
+			BuildListener listener) {
 
 		// This is where you 'build' the project.
 		// Since this is a dummy, we just say 'hello world' and call that a
@@ -69,40 +72,52 @@ public class AppsV2Builder extends Builder {
 		// This also shows how you can consult the global configuration of the
 		// builder
 		// if (getDescriptor().getUseFrench())
-		listener.getLogger().println("Bonjour, user!" + projectUrl + " " + buildPath);
+		listener.getLogger().println(
+				"Bonjour, user!" + projectUrl + " " + buildPath);
 		// else
 		// listener.getLogger().println("Hello, " + name + "!");
 
 		try {
-			
-			File dir = new File("C:\\upload_folder");
-			FileFilter fileFilter = new WildcardFileFilter("*.apk");
-			File[] files = dir.listFiles(fileFilter);
-			for (int i = 0; i < files.length; i++) {
-				listener.getLogger().println(files[i]);
+			File buildFile = findBuildFile(buildPath, listener.getLogger());
+			if (buildFile != null) {
+				return sendBuild(buildFile, projectUrl,  listener.getLogger());
 			}
-			return sendBuild(listener.getLogger());
 		} catch (Exception e) {
 			listener.getLogger().println(ExceptionUtils.getStackTrace(e));
 		}
 		return false;
 	}
 
-	private boolean sendBuild(PrintStream logger) throws IOException, ClientProtocolException {
-		logger.println("1");
+	private File findBuildFile(String buildPath, PrintStream logger) {
+		File dir = new File(buildPath);
+		FileFilter fileFilter = new WildcardFileFilter("*debug.apk");
+		File[] files = dir.listFiles(fileFilter);
+		Arrays.sort(files, new Comparator<File>() {
+			public int compare(File f1, File f2) {
+				return Long.valueOf(f1.lastModified()).compareTo(f2.lastModified());
+			}
+		});
+		//TODO debug
+		for (int i = 0; i < files.length; i++) {
+			logger.println(files[i]);
+		}
+		if (files.length > 0) {
+			return files[0];
+		}
+		return null;
+	}
+
+	private boolean sendBuild(File file, String projectUrl, PrintStream logger)
+			throws IOException, ClientProtocolException {
 		HttpClient httpclient = new DefaultHttpClient();
-		logger.println("2");
-		File file = new File("C:\\kidslox.apk");
-		logger.println("3");
 		MultipartEntityBuilder builder = MultipartEntityBuilder.create();
 		FileBody fileBody = new FileBody(file);
 		builder.addPart("app", fileBody);
-		builder.addPart("version", new StringBody("1.0.0", ContentType.TEXT_PLAIN));
-		logger.println("4");
-		
-		Header header = new BasicHeader("X-API-Key", "5a61db3dcec0fe4616d08084102dad9b6511c1b1");
-		HttpPost post = new HttpPost("http://localhost:9000/upload");
-		logger.println("5");
+		builder.addPart("version", new StringBody("1.0.0",
+				ContentType.TEXT_PLAIN));
+
+		Header header = new BasicHeader("X-API-Key","5a61db3dcec0fe4616d08084102dad9b6511c1b1");
+		HttpPost post = new HttpPost(projectUrl);
 		post.setHeader(header);
 		post.setEntity(builder.build());
 		HttpResponse response = httpclient.execute(post);
@@ -118,17 +133,6 @@ public class AppsV2Builder extends Builder {
 			}
 		}
 		return false;
-//		HttpEntity resEntity = entity;
-//
-//		System.out.println(response.getStatusLine());
-//		if (resEntity != null) {
-//			System.out.println(EntityUtils.toString(resEntity));
-//		}
-//		if (resEntity != null) {
-//			resEntity.consumeContent();
-//		}
-//
-//		httpclient.getConnectionManager().shutdown();
 	}
 
 	@Extension
