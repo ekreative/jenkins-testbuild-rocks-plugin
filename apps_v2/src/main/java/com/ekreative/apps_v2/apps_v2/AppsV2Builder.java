@@ -11,31 +11,35 @@ import hudson.tasks.Builder;
 import hudson.tasks.BuildStepDescriptor;
 import net.sf.json.JSONObject;
 
+import org.apache.commons.httpclient.HttpStatus;
+import org.apache.commons.httpclient.HttpVersion;
+import org.apache.commons.io.filefilter.WildcardFileFilter;
+import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.http.Header;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.entity.mime.content.FileBody;
+import org.apache.http.entity.mime.content.StringBody;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicHeader;
+import org.apache.http.params.CoreProtocolPNames;
+import org.apache.http.util.EntityUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.QueryParameter;
 
 import javax.servlet.ServletException;
 
+import java.io.File;
+import java.io.FileFilter;
 import java.io.IOException;
+import java.io.PrintStream;
 
-/**
- * Sample {@link Builder}.
- *
- * <p>
- * When the user configures the project and enables this builder,
- * {@link DescriptorImpl#newInstance(StaplerRequest)} is invoked and a new
- * {@link AppsV2Builder} is created. The created instance is persisted to
- * the project configuration XML by using XStream, so this allows you to use
- * instance fields (like {@link #name}) to remember the configuration.
- *
- * <p>
- * When a build is performed, the
- * {@link #perform(AbstractBuild, Launcher, BuildListener)} method will be
- * invoked.
- *
- * @author Kohsuke Kawaguchi
- */
 public class AppsV2Builder extends Builder {
 
 	private final String projectUrl;
@@ -47,11 +51,9 @@ public class AppsV2Builder extends Builder {
 		this.projectUrl = projectUrl;
 	}
 
-	
 	public String getBuildPath() {
 		return buildPath;
 	}
-
 
 	public String getProjectUrl() {
 		return projectUrl;
@@ -59,17 +61,74 @@ public class AppsV2Builder extends Builder {
 
 	@Override
 	public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) {
+
 		// This is where you 'build' the project.
 		// Since this is a dummy, we just say 'hello world' and call that a
 		// build.
 
 		// This also shows how you can consult the global configuration of the
 		// builder
-//		if (getDescriptor().getUseFrench())
-			listener.getLogger().println("Bonjour, user!" + projectUrl + " " + buildPath);
-//		else
-//			listener.getLogger().println("Hello, " + name + "!");
+		// if (getDescriptor().getUseFrench())
+		listener.getLogger().println("Bonjour, user!" + projectUrl + " " + buildPath);
+		// else
+		// listener.getLogger().println("Hello, " + name + "!");
+
+		try {
+			
+			File dir = new File("C:\\upload_folder");
+			FileFilter fileFilter = new WildcardFileFilter("*.apk");
+			File[] files = dir.listFiles(fileFilter);
+			for (int i = 0; i < files.length; i++) {
+				listener.getLogger().println(files[i]);
+			}
+			return sendBuild(listener.getLogger());
+		} catch (Exception e) {
+			listener.getLogger().println(ExceptionUtils.getStackTrace(e));
+		}
+		return false;
+	}
+
+	private boolean sendBuild(PrintStream logger) throws IOException, ClientProtocolException {
+		logger.println("1");
+		HttpClient httpclient = new DefaultHttpClient();
+		logger.println("2");
+		File file = new File("C:\\kidslox.apk");
+		logger.println("3");
+		MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+		FileBody fileBody = new FileBody(file);
+		builder.addPart("app", fileBody);
+		builder.addPart("version", new StringBody("1.0.0", ContentType.TEXT_PLAIN));
+		logger.println("4");
+		
+		Header header = new BasicHeader("X-API-Key", "5a61db3dcec0fe4616d08084102dad9b6511c1b1");
+		HttpPost post = new HttpPost("http://localhost:9000/upload");
+		logger.println("5");
+		post.setHeader(header);
+		post.setEntity(builder.build());
+		HttpResponse response = httpclient.execute(post);
+		int status = response.getStatusLine().getStatusCode();
+		logger.println("status code: " + status);
+		if (status == HttpStatus.SC_OK) {
+			logger.println("Successful! Build uploaded!");
 			return true;
+		} else {
+			HttpEntity entity = response.getEntity();
+			if (entity != null) {
+				logger.println(EntityUtils.toString(entity));
+			}
+		}
+		return false;
+//		HttpEntity resEntity = entity;
+//
+//		System.out.println(response.getStatusLine());
+//		if (resEntity != null) {
+//			System.out.println(EntityUtils.toString(resEntity));
+//		}
+//		if (resEntity != null) {
+//			resEntity.consumeContent();
+//		}
+//
+//		httpclient.getConnectionManager().shutdown();
 	}
 
 	@Extension
