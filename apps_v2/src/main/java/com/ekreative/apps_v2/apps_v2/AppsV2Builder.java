@@ -47,11 +47,13 @@ import java.util.Scanner;
 public class AppsV2Builder extends Builder {
 
 	private static final String VERSION_NAME = "versionName \"";
+	private final String appName;
 	private final String projectUrl;
 	private final String buildPath;
 
 	@DataBoundConstructor
-	public AppsV2Builder(String buildPath, String projectUrl) {
+	public AppsV2Builder(String appName, String buildPath, String projectUrl) {
+		this.appName = appName;
 		this.buildPath = buildPath;
 		this.projectUrl = projectUrl;
 	}
@@ -115,15 +117,33 @@ public class AppsV2Builder extends Builder {
 		}
 		return "unknown";
 	}
+	
+	public File getAppIcon(String buildPath, PrintStream logger) {
+		File mipmapFile = new File(buildPath+"\\src\\main\\res\\mipmap-xxhdpi\\ic_launcher.png");
+		if (mipmapFile.exists()) {
+			return mipmapFile;
+		} else {
+			File drawableFile = new File(buildPath+"\\src\\main\\res\\drawable-xxhdpi\\ic_launcher.png");
+			if (drawableFile.exists()) {
+				return drawableFile;
+			}
+		}
+		return null;
+	}
 
-	private boolean sendBuild(File file, String projectUrl, PrintStream logger) throws IOException, ClientProtocolException {
+	private boolean sendBuild(File appFile, String projectUrl, PrintStream logger) throws IOException, ClientProtocolException {
 		HttpClient httpclient = new DefaultHttpClient();
 		String appVersion = getAppVersion(buildPath, logger);
 		logger.println("appVersion="+appVersion);
+		File appIcon = getAppIcon(buildPath, logger);
 		MultipartEntityBuilder builder = MultipartEntityBuilder.create();
-		FileBody fileBody = new FileBody(file);
-		builder.addPart("app", fileBody);
-		builder.addPart("name", new StringBody("debug", ContentType.TEXT_PLAIN));
+		FileBody appFileBody = new FileBody(appFile);
+		builder.addPart("app", appFileBody);
+		if (appIcon != null) {
+			FileBody iconFileBody = new FileBody(appIcon);
+			builder.addPart("icon", iconFileBody);
+		}
+		builder.addPart("name", new StringBody(appName.isEmpty() ? "unknown": appName, ContentType.TEXT_PLAIN));
 		builder.addPart("version", new StringBody(appVersion, ContentType.TEXT_PLAIN));
 
 		Header header = new BasicHeader("X-API-Key","5a61db3dcec0fe4616d08084102dad9b6511c1b1");
