@@ -57,6 +57,12 @@ public class AppsV2Builder extends Builder {
 		this.buildPath = buildPath;
 		this.projectUrl = projectUrl;
 	}
+	
+
+	public String getAppName() {
+		return appName;
+	}
+
 
 	public String getBuildPath() {
 		return buildPath;
