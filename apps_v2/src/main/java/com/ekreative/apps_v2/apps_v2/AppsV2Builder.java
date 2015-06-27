@@ -25,7 +25,7 @@ import java.io.IOException;
  * <p>
  * When the user configures the project and enables this builder,
  * {@link DescriptorImpl#newInstance(StaplerRequest)} is invoked and a new
- * {@link HelloWorldBuilder} is created. The created instance is persisted to
+ * {@link AppsV2Builder} is created. The created instance is persisted to
  * the project configuration XML by using XStream, so this allows you to use
  * instance fields (like {@link #name}) to remember the configuration.
  *
@@ -36,17 +36,25 @@ import java.io.IOException;
  *
  * @author Kohsuke Kawaguchi
  */
-public class HelloWorldBuilder extends Builder {
+public class AppsV2Builder extends Builder {
 
-	private final String task;
+	private final String projectUrl;
+	private final String buildPath;
 
 	@DataBoundConstructor
-	public HelloWorldBuilder(String task) {
-		this.task = task;
+	public AppsV2Builder(String buildPath, String projectUrl) {
+		this.buildPath = buildPath;
+		this.projectUrl = projectUrl;
 	}
 
-	public String getTask() {
-		return "hello";
+	
+	public String getBuildPath() {
+		return buildPath;
+	}
+
+
+	public String getProjectUrl() {
+		return projectUrl;
 	}
 
 	@Override
@@ -58,7 +66,7 @@ public class HelloWorldBuilder extends Builder {
 		// This also shows how you can consult the global configuration of the
 		// builder
 //		if (getDescriptor().getUseFrench())
-			listener.getLogger().println("Bonjour, user!");
+			listener.getLogger().println("Bonjour, user!" + projectUrl + " " + buildPath);
 //		else
 //			listener.getLogger().println("Hello, " + name + "!");
 			return true;
@@ -74,7 +82,7 @@ public class HelloWorldBuilder extends Builder {
 
 		@Override
 		public String getDisplayName() {
-			return "Upload build to apps-v2";
+			return "Upload test build to apps-v2";
 		}
 	}
 	// private final String name;
